@@ -1,0 +1,97 @@
+__author__ = "Vinil Mehta"
+"""
+Loop through input dir.
+See if any folder gets a new file
+If file count >0, call function to read that file
+"""
+import sys
+import time
+from watchdog.observers import Observer
+from watchdog.events import match_any_paths
+from watchdog.events import FileSystemEventHandler
+import logging
+from openpyxl import workbook as wb
+from openpyxl.worksheet.datavalidation import DataValidation as dv
+from openpyxl import load_workbook
+
+class MyHandler( FileSystemEventHandler ):
+
+    def on_created(self, event):
+        """
+        This will be triggered when new file created/popped into our directory.
+        the code is behaving the desired way
+
+        :type event: object
+        """
+        print( "Event Type ", event.event_type )
+        path = event.src_path.replace( '\\', '/' )
+        #print( "Path ", path )
+        print("Reading the file now...")
+        time.sleep(5)
+
+        if event.src_path.endswith( ".xlsx" ):  # testing file format
+            """ if input file is excel, 
+            print file name,
+            open the file,
+            check for pre defined cell validations,
+            print messgae Pass or Fail.
+            """
+            print("File type is .xlsx")
+            time.sleep(5)
+
+            testwb = load_workbook( path )
+            file_name = []  # empty list to store directory location of incomming file
+            file_name = event.src_path.split( "\\" )  # splitting file name and directory to segregate them in list
+            print( "File Location", file_name[0] )  # first element of list is directory of landing file
+            print( "File Name :", file_name[1] )  # second element of list is file name
+            print("Validating the file now... ")
+            time.sleep(5)
+            ws = testwb.active
+            col = ws.max_column
+            row = ws.max_row
+            p_type = ws.cell( row=1, column=2 )
+            if p_type.value == "Price Plan":
+                pp = ws.cell( row=2, column=2 )
+                if pp.value is None or len( pp.value ) > 30:
+                    print( "Error: Check Price Plan Name ! " )
+                else:
+                    print( pp.value )
+
+            pp_id = ws.cell( row=3, column=2 )
+            if pp_id.value is None:
+                print( "Error: Plan ID is missing! " )
+            else:
+                print( pp_id.value )
+
+            pp_cost = ws.cell( row=4, column=2 )
+            if pp_cost.value is None:
+                print( "Rejected: Plan Cost is missing! " )
+            else:
+                print( pp_cost.value )
+
+            pp_type = ws.cell( row=1, column=1 )
+            if p_type.value == "SIPT":
+                print( "This is SIPT type of product" )
+                print( "#" * 50 )
+            else:
+                print( "This is Not SIPT Product type" )
+                print("#"*50)
+        else:
+            print( "This is not an excel file." )
+            print( "#" * 50 )
+
+if __name__ == '__main__':
+    event_handler = MyHandler()  # object of class
+    observer = Observer()
+    file = "C:/Users/vinilm/Desktop/Input/"
+    observer.schedule( event_handler, path=file, recursive=True )
+    observer.start()
+    # logging.info( "Logging Now...".format(file) )
+
+    try:
+        while True:
+            time.sleep( 10 )
+            
+    except KeyboardInterrupt:
+        observer.stop()
+    observer.join()
